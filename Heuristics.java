@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Random;
 
 public class Heuristics {
@@ -16,28 +17,42 @@ public class Heuristics {
     
     public static final int SEM_TIME = 0;
 
-    public static void SimulatedAnnealing(int[][] table, int[][] s){
+    public static int[][] SimulatedAnnealing(int[][] table, float temp_inicial, float temp_final, int max_ite, double alfa) throws NullPointerException{
         // CALCULAFO NÃO REPRESENTA NADA NO MOMENTO ATUAL
         // Gerar a solução inicial
         // Temperatura Inicial
+        float temperatura = temp_inicial;
+        int[][] s = geraSolucaoInicial(table);
+        int[][] viz = null;
+        double fo_s, fo_viz;
+        
         do{
+            int i = 0;
             do{
                 // Gerar um vizinho aleatório
+                viz = geraVizinho(table, s);
                 // deltaE = Diferença entre f(s') e f(s)
-                if(calculaFO(table, s) == 1/* deltaE <= 0 */)
+                fo_s = calculaFO(table, s);
+                fo_viz = calculaFO(table, viz);
+                double deltaE = fo_viz - fo_s;
+
+                if(deltaE <= 0/* deltaE <= 0 */)
                 {
-                    calculaFO(table, s);
                     // Aceita o vizinho como solução
+                    s = viz;
                 }else
                 {
                     calculaFO(table, s);
                     // s' será aceito com uma probabilidade e^(-deltaE / T)
+                    s = ((new Random()).nextDouble() <= Math.exp( (-deltaE)/temperatura ))? viz : s;
                 }
-            }while(false/* Condição de Equilíbrio */); // Ex.: um dado número de iterações executado em cada temperatura
+            }while(i < max_ite); // Ex.: um dado número de iterações executado em cada temperatura
             // Atualiza a temperatura
-        }while(false/* Critério de parada */); // Ex.: T < Tmin
+            temperatura *= alfa;
+        }while(temperatura < temp_final); // Ex.: T < Tmin
 
         // return s (melhor solução)
+        return s;
     }
 
     public static int[][] geraSolucaoInicial(int[][] table) throws NullPointerException
@@ -188,10 +203,10 @@ public class Heuristics {
         return fo;
     }
 
-    public static int[][] geraVizinho(int[] table, int[][] s)
+    private static int[][] geraVizinho(int[][] table, int[][] s)
     {
-        int [][] s_ = s;
-        switch(1){
+        int [][] s_ = null;
+        switch((new Random()).nextInt(3) + 1){
             case 1:
                 s_ = trocaCasa(s);
                 break;
@@ -217,21 +232,164 @@ public class Heuristics {
 
     private static int[][] trocaCasa(int[][] s)
     {
+        // Seleciona aleatoriamente 2 times para 
+        // trocar quem joga dentro/fora de casa
+        int time, adversario, rodada;
+        Random rng = new Random();
+
+        time = 1 + rng.nextInt(s.length - 1);
+        rodada = rng.nextInt(s[0].length/2);
+
+        adversario = Math.abs(s[time][rodada]);
+
+        // Trocando o mando de campo de T e A
+        for(int rodadas = 0; rodadas < s[0].length; rodadas++)
+        {
+            if(s[time][rodadas] == -adversario)
+            {
+                // Troca
+                s[time][rodadas] *= -1;
+                s[adversario][rodadas] *= -1;
+
+                s[time][rodada] *= -1;
+                s[adversario][rodada] *= -1;
+                break;
+            }
+        }
+
         return s;
     }
 
     private static int[][] trocaRodada(int[][] s)
     {
+        // Troca duas rodadas randomicamente
+        int r1, r2;
+        Random rng = new Random();
+        
+        r1 = rng.nextInt(s[0].length);
+        r2 = rng.nextInt(s[0].length);
+
+        // Trocando as rodadas r1 e r2
+        for(int times = 1; times < s.length; times++)
+        {
+            int aux = s[times][r1];
+            s[times][r1] = s[times][r2];
+            s[times][r2] = aux;
+        }
         return s;
     }
 
     private static int[][] trocaTime(int[][] s)
     {
+        // Troca a lista de times que T jogaria
+        // com a lista de A
+        int time, adversario;
+        Random rng = new Random();
+
+        time = 1 + rng.nextInt(s.length - 1);
+        adversario = time;
+        
+        // Certificando que os dois times são diferentes
+        while(time == adversario) adversario = 1 + rng.nextInt(s.length - 1);
+        
+        for(int rodada = 0; rodada < s[0].length; rodada++)
+        {
+            if(s[time][rodada] == adversario) continue;
+            else
+            {
+                int aux = s[time][rodada];
+                s[time][rodada] = s[adversario][rodada];
+                s[adversario][rodada] = aux;
+            }
+        }
+
         return s;
     }
 
     private static int[][] trocaParcialTime(int[][] s)
     {
+        // @ATENÇÃO:
+        // FUNTIONANDO MAS 341,342,352,353,372,373 PRECISAM SER ALTERADAS PARA RESPEITARAM MANDO DE CASA
+        // Seleciona aleatoriamente uma rodada e 2 times
+        // Troca os adversários de cada time naquela rodada
+        // e altera a tablea 
+        int[] times = new int[2];
+        int rodada;
+        Random rng = new Random();
+
+        times[0] = 1 + rng.nextInt(s.length - 1);
+        times[1] = times[0];
+
+        while(times[0] == times[1] ) times[1] = 1 + rng.nextInt(s.length - 1);
+
+        rodada = rng.nextInt(s[0].length);
+
+        while( s[ times[0] ][rodada] == times[1] ) rodada = rng.nextInt(s[0].length);
+
+        // DEBUG
+        times[0] = 2;
+        times[1] = 4;
+        rodada = 8; // = 9
+
+        // troca os adversários de 2 e 4 na rodada 9
+        int aux = s[ times[0] ][rodada];
+        s[ times[0] ][rodada] = s[ times[1] ][rodada];
+        s[ times[1] ][rodada] = aux;
+        
+        // e arruma a rodada
+        s[ Math.abs(s[ times[0] ][rodada]) ][rodada] = times[0];
+        s[ Math.abs(s[ times[1] ][rodada]) ][rodada] = times[1];
+
+        // rodadas em que 2 e 4 jogavam contra seus atuaais adv. na rodada 9
+        int rodada_ = 0;
+        for(int i = 0; i < s[0].length; i++)
+        {
+            if( i != rodada && s[ times[0] ][i] == s[ times[0] ][rodada] )
+            {
+                // troca os jogos de 2 e 4 na rodada i
+                aux = s[ times[0] ][i];
+                s[ times[0] ][i] = s[ times[1] ][i];
+                s[ times[1] ][i] = aux;
+
+                // Arruma a rodada i
+                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
+                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
+            }
+            if( i != rodada && s[ times[1] ][i] == s[ times[1] ][rodada] )
+            {
+                // troca os jogos de 2 e 4 na rodada i
+                aux = s[ times[0] ][i];
+                s[ times[0] ][i] = s[ times[1] ][i];
+                s[ times[1] ][i] = aux;
+
+                // Arruma a rodada i
+                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
+                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
+                
+                rodada_ = i;
+            }
+        }
+
+        // Aletrando a rodada em que o time 4 joga contra seu atual adv.
+        // na rodada I
+        
+        for(int i = 0; i < s[0].length; i++)
+        {
+            if( i != rodada_ && s[ times[1] ][i] == s[ times[1] ][rodada_] )
+            {
+                // troca os jogos de 2 e 4 na rodada i
+                aux = s[ times[0] ][i];
+                s[ times[0] ][i] = s[ times[1] ][i];
+                s[ times[1] ][i] = aux;
+
+                // Arruma a rodada i
+                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
+                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
+                break;
+            }
+        }
+        System.out.println("------------");
+
         return s;
     }
 }
