@@ -245,8 +245,7 @@ public class Heuristics {
     private static int[][] geraVizinho(int[][] table, int[][] s)
     {
         int [][] s_ = null;
-        // switch((new Random()).nextInt(3) + 1){
-        switch(4){
+        switch((new Random()).nextInt(3) + 1){
             case 1:
                 s_ = trocaCasa(s);
                 break;
