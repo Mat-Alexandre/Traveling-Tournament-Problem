@@ -1,4 +1,3 @@
-import java.util.Arrays;
 import java.util.Random;
 
 public class Heuristics {
@@ -17,9 +16,8 @@ public class Heuristics {
     
     public static final int SEM_TIME = 0;
 
-    public static int[][] SimulatedAnnealing(int[][] table, float temp_inicial, float temp_final, int max_ite, double alfa) throws NullPointerException{
+    public static int[][] SimulatedAnnealing(int[][] table, float temp_final, int max_ite, double alfa) throws NullPointerException{
         // Gerar a solução inicial
-        // Temperatura Inicial
         int[][] s = geraSolucaoInicial(table);
         float temperatura = calculaTemperaturaInicial(table, s, max_ite, alfa);
         int[][] viz = null;
@@ -45,6 +43,7 @@ public class Heuristics {
                     // s' será aceito com uma probabilidade e^(-deltaE / T)
                     s = ((new Random()).nextDouble() <= Math.exp( (-deltaE)/temperatura ))? viz : s;
                 }
+                i++;
             }while(i < max_ite); // Ex.: um dado número de iterações executado em cada temperatura
             // Atualiza a temperatura
             temperatura *= alfa;
@@ -229,7 +228,7 @@ public class Heuristics {
                     aceitos++;
                 else
                 {
-                    if( (new Random()).nextDouble() < Math.exp( (-delta)/temperatura )
+                    if( (new Random()).nextDouble() < Math.exp( (-delta)/temperatura ) )
                         aceitos++;
                 }
 
