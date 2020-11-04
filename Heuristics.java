@@ -20,8 +20,8 @@ public class Heuristics {
     public static int[][] SimulatedAnnealing(int[][] table, float temp_inicial, float temp_final, int max_ite, double alfa) throws NullPointerException{
         // Gerar a solução inicial
         // Temperatura Inicial
-        float temperatura = temp_inicial;
         int[][] s = geraSolucaoInicial(table);
+        float temperatura = calculaTemperaturaInicial(table, s, max_ite, alfa);
         int[][] viz = null;
         double fo_s, fo_viz;
         
@@ -200,6 +200,47 @@ public class Heuristics {
             fo += table[t][a];
         }
         return fo;
+    }
+
+    private static float calculaTemperaturaInicial(int[][] table, int [][] s, int max_ite, double alfa)
+    {
+        // A temperatura inicial será feita calculada 
+        // através desse trecho de código e não via iput do usuário
+        int aceitos = 0, min_aceitos;
+        double fo_s, fo_viz, delta;
+        float temperatura = 2;
+
+        min_aceitos = (int)(alfa * max_ite);
+
+        while( aceitos < min_aceitos )
+        {
+            int ite = 0;
+            while( ite < max_ite)
+            {
+                ite++;
+
+                fo_s = calculaFO(table, s);
+
+                fo_viz = calculaFO(table, geraVizinho(table, s));
+
+                delta = fo_viz - fo_s;
+
+                if( delta < 0 )
+                    aceitos++;
+                else
+                {
+                    if( (new Random()).nextDouble() < Math.exp( (-delta)/temperatura )
+                        aceitos++;
+                }
+
+            }
+            if(aceitos < min_aceitos)
+            {
+                aceitos = 0;
+                temperatura *= 1.1f;
+            }
+        }
+        return temperatura;
     }
 
     private static int[][] geraVizinho(int[][] table, int[][] s)
