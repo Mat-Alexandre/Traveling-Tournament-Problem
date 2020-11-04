@@ -18,7 +18,6 @@ public class Heuristics {
     public static final int SEM_TIME = 0;
 
     public static int[][] SimulatedAnnealing(int[][] table, float temp_inicial, float temp_final, int max_ite, double alfa) throws NullPointerException{
-        // CALCULAFO NÃO REPRESENTA NADA NO MOMENTO ATUAL
         // Gerar a solução inicial
         // Temperatura Inicial
         float temperatura = temp_inicial;
@@ -308,13 +307,11 @@ public class Heuristics {
 
     private static int[][] trocaParcialTime(int[][] s)
     {
-        // @ATENÇÃO:
-        // FUNTIONANDO MAS 341,342,352,353,372,373 PRECISAM SER ALTERADAS PARA RESPEITARAM MANDO DE CASA
         // Seleciona aleatoriamente uma rodada e 2 times
         // Troca os adversários de cada time naquela rodada
         // e altera a tablea 
         int[] times = new int[2];
-        int rodada;
+        int rodada, aux, adv_T, adv_T_;
         Random rng = new Random();
 
         times[0] = 1 + rng.nextInt(s.length - 1);
@@ -327,68 +324,80 @@ public class Heuristics {
         while( s[ times[0] ][rodada] == times[1] ) rodada = rng.nextInt(s[0].length);
 
         // DEBUG
-        times[0] = 2;
-        times[1] = 4;
-        rodada = 8; // = 9
-
-        // troca os adversários de 2 e 4 na rodada 9
-        int aux = s[ times[0] ][rodada];
+        times[0] = 2; times[1] = 4; rodada = 8;
+        
+        // troca os adversários de T e T' na rodada R
+        aux = s[ times[0] ][rodada];
         s[ times[0] ][rodada] = s[ times[1] ][rodada];
         s[ times[1] ][rodada] = aux;
         
         // e arruma a rodada
-        s[ Math.abs(s[ times[0] ][rodada]) ][rodada] = times[0];
-        s[ Math.abs(s[ times[1] ][rodada]) ][rodada] = times[1];
+        adv_T = Math.abs(s[ times[0] ][rodada]);
+        adv_T_ = Math.abs(s[ times[1] ][rodada]);
 
-        // rodadas em que 2 e 4 jogavam contra seus atuaais adv. na rodada 9
+        aux = s[ adv_T ][rodada];
+        s[ adv_T ][rodada] = s[ adv_T_ ][rodada];
+        s[ adv_T_ ][rodada] = aux;
+
+        // rodadas em que T e T' jogavam contra seus atuaais adv. na rodada R
         int rodada_ = 0;
         for(int i = 0; i < s[0].length; i++)
         {
             if( i != rodada && s[ times[0] ][i] == s[ times[0] ][rodada] )
             {
-                // troca os jogos de 2 e 4 na rodada i
+                // troca os jogos de T e T' na rodada i
                 aux = s[ times[0] ][i];
                 s[ times[0] ][i] = s[ times[1] ][i];
                 s[ times[1] ][i] = aux;
 
                 // Arruma a rodada i
-                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
-                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
+                adv_T = Math.abs(s[ times[0] ][i]);
+                adv_T_ = Math.abs(s[ times[1] ][i]);
+
+                aux = s[ adv_T ][i];
+                s[ adv_T ][i] = s[ adv_T_ ][i];
+                s[ adv_T_ ][i] = aux;
             }
             if( i != rodada && s[ times[1] ][i] == s[ times[1] ][rodada] )
             {
-                // troca os jogos de 2 e 4 na rodada i
+                // troca os jogos de T e T' na rodada i
                 aux = s[ times[0] ][i];
                 s[ times[0] ][i] = s[ times[1] ][i];
                 s[ times[1] ][i] = aux;
 
                 // Arruma a rodada i
-                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
-                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
+                adv_T = Math.abs(s[ times[0] ][i]);
+                adv_T_ = Math.abs(s[ times[1] ][i]);
+
+                aux = s[ adv_T ][i];
+                s[ adv_T ][i] = s[ adv_T_ ][i];
+                s[ adv_T_ ][i] = aux;
                 
                 rodada_ = i;
             }
         }
 
-        // Aletrando a rodada em que o time 4 joga contra seu atual adv.
+        // Aletrando a rodada em que o time T' joga contra seu atual adv.
         // na rodada I
         
         for(int i = 0; i < s[0].length; i++)
         {
             if( i != rodada_ && s[ times[1] ][i] == s[ times[1] ][rodada_] )
             {
-                // troca os jogos de 2 e 4 na rodada i
+                // troca os jogos de T e T' na rodada i
                 aux = s[ times[0] ][i];
                 s[ times[0] ][i] = s[ times[1] ][i];
                 s[ times[1] ][i] = aux;
 
                 // Arruma a rodada i
-                s[ Math.abs(s[ times[0] ][i]) ][i] = times[0];
-                s[ Math.abs(s[ times[1] ][i]) ][i] = times[1];
-                break;
+                adv_T = Math.abs(s[ times[0] ][i]);
+                adv_T_ = Math.abs(s[ times[1] ][i]);
+
+                aux = s[ adv_T ][i];
+                s[ adv_T ][i] = s[ adv_T_ ][i];
+                s[ adv_T_ ][i] = aux;
             }
         }
-        System.out.println("------------");
 
         return s;
     }
