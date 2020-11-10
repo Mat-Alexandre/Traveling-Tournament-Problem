@@ -1,3 +1,5 @@
+package src;
+
 import java.util.Scanner;
 import java.io.FileNotFoundException;
 import java.io.File;
@@ -6,8 +8,10 @@ public class OpenFile{
 
     public static int[][] getFile(){
         int[][] table = null;
+        String currDir = System.getProperty("user.dir");
+        System.out.println();
         try{
-            Scanner sc = new Scanner(new File("dataset2"));
+            Scanner sc = new Scanner(new File(currDir + "\\datasets\\dataset2"));
             // Get the size of table in file
             int tableSize = sc.nextInt();
             // Skip current line

@@ -1,3 +1,5 @@
+package src;
+
 import java.util.Random;
 
 public class Heuristics {
@@ -20,19 +22,22 @@ public class Heuristics {
      * Heurística para busca de ótimos locais de uma solução
      * através de um paralelo feito com fabricação de ligas metálicas
      * 
-     * @param table
-     * @param temp_final
-     * @param max_ite
-     * @param alfa
+     * @param table         tabela de distância
+     * @param temp_final    temperatura final desejada
+     * @param max_ite       número máximo de iterações
+     * @param alfa          parâmetro do SA
      * @return
      * @throws NullPointerException
      */
-    public static int[][] SimulatedAnnealing(int[][] table, float temp_final, int max_ite, double alfa) throws NullPointerException{
+    public static int[][] SimulatedAnnealing(int[][] table, float temp_final, double alfa) throws NullPointerException{
         /* Gerar a solução inicial e cálculo da temperatura */
-        int[][] s = geraSolucaoInicial(table);
+        int[][] s = geraSolucaoInicial(table), viz = null;
+        int max_ite = (s.length - 1)*((s.length - 1)-1)/2;
         float temperatura = calculaTemperaturaInicial(table, s, max_ite, alfa);
-        int[][] viz = null;
         double fo_s, fo_viz;
+        
+        System.out.println("Result Table:");
+        Main.printTable(s);
         
         do{
             int i = 0;
@@ -73,7 +78,7 @@ public class Heuristics {
     /**
      * Gera uma solução inicial via backtracking
      * 
-     * @param table
+     * @param table tabela de distância
      * @return uma matriz de tamanho [n+1][2(n - 1)] contendo a solução inicial,
      * onde n é quantidade de times presentes no parâmetro table
      * @throws NullPointerException
@@ -91,23 +96,23 @@ public class Heuristics {
     /**
      * Solução principal para a criação de uma solução via backtracking
      * 
-     * @param solucao
-     * @param time
-     * @param rodada
+     * @param s         matriz solução atual
+     * @param time      time a ser analisado
+     * @param rodada    rodada de comparação
      * @return true ou false caso a solução seja aceita pelo backtracking
      */
-    private static boolean solucaoBacktracking(int[][] solucao, int time, int rodada)
+    private static boolean solucaoBacktracking(int[][] s, int time, int rodada)
     {
         /**
          * Passo base do backtracking
          * O backtracking ocorrerá somente até a metade das rodadas.
          * As restantes serão espelhadas com mando de campo invertido.
          */
-        if(rodada == (solucao[0].length / 2))
+        if(rodada == (s[0].length / 2))
         {
-            if(time == solucao.length-1)
+            if(time == s.length-1)
                 return true;
-            else if(solucaoBacktracking(solucao, time + 1, 0))
+            else if(solucaoBacktracking(s, time + 1, 0))
                 return true;
             else
                 return false;
@@ -115,16 +120,16 @@ public class Heuristics {
         
         /* Para cada time T Verificar se o time T' pode ser colocado na rodada */
         int fora_seq = 0;
-        for(int adversario = 1; adversario < solucao.length; adversario++)
+        for(int adversario = 1; adversario < s.length; adversario++)
         {
             /* Se respeita as restrições */
-            if(solucao[time][rodada] == SEM_TIME && rodada < (solucao[0].length / 2))
+            if(s[time][rodada] == SEM_TIME && rodada < (s[0].length / 2))
             {
-                if(respeitaRestricoes(solucao, time, adversario, rodada))
+                if(respeitaRestricoes(s, time, adversario, rodada))
                 {
                     /* Posição válida */
                     /* Preenchendo as rodadas a partir da r[2(n - 1)] de forma espelhada */
-                    int m_round = (solucao[0].length / 2);
+                    int m_round = (s[0].length / 2);
                     int mult = 0;
                     if( (new Random()).nextInt(1) == 1 && fora_seq < 3)
                     {
@@ -136,19 +141,19 @@ public class Heuristics {
                         mult = 1;
                     }
 
-                    solucao[time][rodada] = mult * adversario;
-                    solucao[adversario][rodada] = -mult * time;
-                    solucao[time][rodada + m_round] = -mult * adversario;
-                    solucao[adversario][rodada + m_round] = mult * time;
+                    s[time][rodada] = mult * adversario;
+                    s[adversario][rodada] = -mult * time;
+                    s[time][rodada + m_round] = -mult * adversario;
+                    s[adversario][rodada + m_round] = mult * time;
                     /* Backtracking para a próxima rodada */
-                    if(solucaoBacktracking(solucao, time, rodada + 1))
+                    if(solucaoBacktracking(s, time, rodada + 1))
                         return true;
                         
                     /* Se chegou neste trecho, desfazer as alterações */
-                    solucao[time][rodada] = SEM_TIME;
-                    solucao[adversario][rodada] = SEM_TIME;
-                    solucao[time][rodada + m_round] = SEM_TIME;
-                    solucao[adversario][rodada + m_round] = SEM_TIME;
+                    s[time][rodada] = SEM_TIME;
+                    s[adversario][rodada] = SEM_TIME;
+                    s[time][rodada + m_round] = SEM_TIME;
+                    s[adversario][rodada + m_round] = SEM_TIME;
                 }
             }
             else
@@ -163,10 +168,10 @@ public class Heuristics {
     /**
      * Verifica se as restrições de viabilidade da solução estão sendo respeitadas
      * 
-     * @param s
-     * @param time
-     * @param adversario
-     * @param rodada
+     * @param s             matriz solução atual
+     * @param time          time a ser analisado
+     * @param adversario    adversário do time
+     * @param rodada        rodada de comparação
      * @return se determinada combinação de time, adversário e rodada
      * respeitam as restrições
      */
@@ -196,65 +201,31 @@ public class Heuristics {
     /**
      * Cacula da o valor da Função Objetivo de uma determinada solução
      * 
-     *  Cálculo atual está incorrento
+     * Cálculo atual se basea apenas no custo de viajar de um local
+     * ao outro sem penalizar infrações.
      * 
-     *  @param table
-     *  @param s
+     *  @param table    tabela de distância
+     *  @param s        matriz solução atual
      *  @return o valor com precisão double da solução s
      */
     public static double calculaFO(int[][] table, int[][] s)
     {
-        double fo = 0, penalidade = 0;
+        double fo = 0;
         
-        /* Calculo da penalidade */
-        for(int time = 0; time < table.length - 1; time++)
-            for(int adv = time + 1; adv < table[0].length; adv++)
-                penalidade += table[time][adv];
-        
-        for(int time = 1; time < s.length; time++)
+        for(int times = 1; times < s.length; times++)
         {
-            int fora_seq = 0, dentro_seq = 0;
-            int t, a;
-            for(int rodada = 0; rodada < s[0].length; rodada++)
+            fo += table[times - 1][ Math.abs(s[times][0]) - 1];
+            int atual = Math.abs(s[times][0]) - 1;
+
+            for(int rodadas = 0; rodadas < s[0].length - 1; rodadas++)
             {
-                /*
-                 * Verificando se o time jogou mais de 3x
-                 * dentro ou fora de casa até a rodada atual
-                 */
-                if(s[time][rodada] < 0)
-                {
-                    dentro_seq = 0;
-                    fora_seq++;
-                }
-                else{
-                    fora_seq = 0;
-                    dentro_seq++;
-                }
-                
-                /*
-                 * Adicionar penalidade se time jogou 
-                 * mais de 3x dentro ou fora de casa
-                 */
-                if(fora_seq > 3 || dentro_seq > 3 )
-                    fo += penalidade;
-                
-                /* Cálculo das distâncias dij para cada time */
-                if(rodada == 0)
-                {
-                    t = Math.abs(time-1);
-                    a = Math.abs(s[time][0])-1;
-                }
-                else
-                {
-                    t = Math.abs(s[time][rodada-1])-1;
-                    a = Math.abs(s[time][rodada])-1;
-                }
-                fo += table[t][a];
+                int prx = Math.abs(s[times][rodadas+1]) - 1;
+
+                fo += table[atual][prx];
+
+                atual = prx;
             }
-            /* Adicionando a volta do time para casa */
-            t = Math.abs(s[time][s[0].length-1])-1;
-            a = Math.abs(time-1);
-            fo += table[t][a];
+            fo += table[ Math.abs(s[times][s[0].length - 1]) - 1 ][times - 1];
         }
         return fo;
     }
@@ -264,10 +235,10 @@ public class Heuristics {
      * A temperatura inicial será feita através desse trecho de
      * código e não via input do usuário
      * 
-     * @param table
-     * @param s
-     * @param max_ite
-     * @param alfa
+     * @param table     tabela de distância
+     * @param s         matriz solução atual
+     * @param max_ite   numero máximo permitido de iterações
+     * @param alfa      parâmetro do SA
      * @return float correspondente a temperatura inicial para 
      * início da heurística Simulated Annealing
      */
@@ -276,6 +247,7 @@ public class Heuristics {
         int aceitos = 0, min_aceitos;
         double fo_s, fo_viz, delta;
         float temperatura = 2;
+        int[][] s_ = copiaSolucao(s);
 
         min_aceitos = (int)(alfa * max_ite);
 
@@ -285,8 +257,8 @@ public class Heuristics {
             while( ite < max_ite)
             {
                 ite++;
-                fo_s = calculaFO(table, s);
-                fo_viz = calculaFO(table, geraVizinho(table, s));
+                fo_s = calculaFO(table, s_);
+                fo_viz = calculaFO(table, geraVizinho(table, s_));
                 delta = fo_viz - fo_s;
                 if( delta < 0 )
                     aceitos++;
@@ -310,14 +282,15 @@ public class Heuristics {
      * Seleciona randomicamente uma entre quatro
      * possibilidades de vizinhança
      * 
-     * @param table
-     * @param s
+     * @param table tabela de distância
+     * @param s     matriz solução atual
      * @return solução vizinha s'
      */
     private static int[][] geraVizinho(int[][] table, int[][] s)
     {
-        int [][] s_ = null;
+        int [][] s_;
         switch((new Random()).nextInt(3) + 1){
+        // switch(4){
             case 1:
                 s_ = trocaCasa(s);
                 break;
@@ -341,7 +314,7 @@ public class Heuristics {
      * Troca o mando de casa entre dois times T e T'
      * escolhidos aleatoriamente.
      * 
-     * @param s
+     * @param s matriz solução atual
      * @return s com as alterações de mando de casa
      */
     private static int[][] trocaCasa(int[][] s)
@@ -374,7 +347,7 @@ public class Heuristics {
     /**
      * Troca duas rodadas selecionadas aleatoriamente
      * 
-     * @param s
+     * @param s matriz solução atual
      * @return s com as rodadas R e R' alteradas
      */
     private static int[][] trocaRodada(int[][] s)
@@ -400,13 +373,15 @@ public class Heuristics {
      * Escolhe aleatoriamente dois times T e T'
      * e troca a sequência de jogos entre ambos.
      * A única exceção é q T/T' não jogará contra si mesmo
-     * Ao trocar as agendas de jogos.
+     * ao trocar as agendas de jogos. Após isso, a tabela
+     * é arrumada.
+     * NOT WORKING PROPERLY
      * 
-     * @param s
+     * @param s matriz solução atual
      * @return s com a sequência de jogos de T e T'
      * alteradas
      */
-    private static int[][] trocaTime(int[][] s)
+    public static int[][] trocaTime(int[][] s)
     {
         /**
          * Troca a lista de times que T jogaria
@@ -429,6 +404,14 @@ public class Heuristics {
                 int aux = s[time][rodada];
                 s[time][rodada] = s[adversario][rodada];
                 s[adversario][rodada] = aux;
+
+                /* Arrumando o restante de cada rodada */
+                aux = Math.abs(s[time][rodada]);
+                s[aux][rodada] = (s[time][rodada] < 0)? time : -time;
+
+                aux = Math.abs(s[adversario][rodada]);
+                s[aux][rodada] = (s[adversario][rodada] < 0)? adversario : -adversario;
+
             }
         }
 
@@ -439,12 +422,13 @@ public class Heuristics {
      * Seleciona aleatorimante uma rodada e dois times.
      * Troca os adversários de cada time naquela rodada escolhida
      * e altera a tabela para que não haja conflitos
+     * NOT WORKING PROPERLY
      * 
-     * @param s
-     * @return s com as alterações de troca parcial das
+     * @param s matriz solução atual
+     * @return  s com as alterações de troca parcial das
      * agendas de jogos dos times T e T'
      */
-    private static int[][] trocaParcialTime(int[][] s)
+    public static int[][] trocaParcialTime(int[][] s)
     {
         int[] times = new int[2];
         int rodada, aux, adv_T, adv_T_;
@@ -493,7 +477,7 @@ public class Heuristics {
             }
             if( i != rodada && s[ times[1] ][i] == s[ times[1] ][rodada] )
             {
-                /* troca os jogos de T e T' na rodada i
+                /* troca os jogos de T e T' na rodada i */
                 aux = s[ times[0] ][i];
                 s[ times[0] ][i] = s[ times[1] ][i];
                 s[ times[1] ][i] = aux;
@@ -535,5 +519,24 @@ public class Heuristics {
         }
 
         return s;
+    }
+
+    /**
+     * Faz uma cópia da solução sem referenciar o
+     * objeto origial. Somente o valor.
+     * 
+     * @param s     matriz solução
+     * @return      s' cópia de s
+     */
+    private static int[][] copiaSolucao(int[][] s){
+        int[][] s_ = new int[s.length][s[0].length];
+
+        for(int i = 1; i < s.length; i++){
+            for(int j = 0; j < s[0].length; j++){
+                s_[i][j] = s[i][j];
+            }
+        }
+
+        return s_;
     }
 }
