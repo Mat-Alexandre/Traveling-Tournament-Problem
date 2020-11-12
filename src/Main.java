@@ -1,8 +1,12 @@
 package src;
 
 public class Main {
+    /**
+     * Imprime a tabela de solução formatada
+     * 
+     * @param table solução a ser impressa
+     */
     public static void printTable(int[][] table){
-        System.out.println();
         for(int i = 1; i < table.length; i++){
             System.out.printf("%2d: ", i);
             for(int j = 0; j < table[0].length; j++){
@@ -10,6 +14,7 @@ public class Main {
             }
             System.out.println();
         }
+        System.out.println();
     }
 
     
@@ -19,10 +24,12 @@ public class Main {
         
         try{
             
-            // s = Heuristics.SimulatedAnnealing(table, 0.01f, 0.97);
-            s = Heuristics.geraSolucaoInicial(table);
+            s = Heuristics.SimulatedAnnealing(table, 0.01f, 0.97);
+            
+            System.out.println("Solução final:");
             printTable(s);
-            // System.out.println("FO(s): " + Heuristics.calculaFO(table, s));
+
+            System.out.println("FO(s): " + Heuristics.calculaFO(table, s));
 
         }catch(NullPointerException npe){
             System.err.println("Não foi possível construir uma solução inicial.");

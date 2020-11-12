@@ -36,7 +36,7 @@ public class Heuristics {
         float temperatura = calculaTemperaturaInicial(table, s, max_ite, alfa);
         double fo_s, fo_viz;
         
-        System.out.println("Result Table:");
+        System.out.println("Solução inicial:");
         Main.printTable(s);
         
         do{
@@ -44,7 +44,7 @@ public class Heuristics {
             do{
                 
                 /* Gerar um vizinho aleatório */
-                viz = geraVizinho(table, s);
+                viz = geraVizinho(table, copiaSolucao(s));
                 
                 /* deltaE = Diferença entre f(s') e f(s) */
                 fo_s = calculaFO(table, s);
@@ -83,7 +83,7 @@ public class Heuristics {
      * onde n é quantidade de times presentes no parâmetro table
      * @throws NullPointerException
      */
-    public static int[][] geraSolucaoInicial(int[][] table) throws NullPointerException
+    private static int[][] geraSolucaoInicial(int[][] table) throws NullPointerException
     {
         int [][] s = new int[table.length+1][2 *(table.length - 1)];
 
@@ -203,6 +203,7 @@ public class Heuristics {
      * 
      * Cálculo atual se basea apenas no custo de viajar de um local
      * ao outro sem penalizar infrações.
+     * Link para calculo correto: https://mat.tepper.cmu.edu/TOURN/ttp_ipcp.pdf
      * 
      *  @param table    tabela de distância
      *  @param s        matriz solução atual
@@ -375,13 +376,12 @@ public class Heuristics {
      * A única exceção é q T/T' não jogará contra si mesmo
      * ao trocar as agendas de jogos. Após isso, a tabela
      * é arrumada.
-     * NOT WORKING PROPERLY
      * 
      * @param s matriz solução atual
      * @return s com a sequência de jogos de T e T'
      * alteradas
      */
-    public static int[][] trocaTime(int[][] s)
+    private static int[][] trocaTime(int[][] s)
     {
         /**
          * Troca a lista de times que T jogaria
@@ -398,7 +398,7 @@ public class Heuristics {
         
         for(int rodada = 0; rodada < s[0].length; rodada++)
         {
-            if(s[time][rodada] == adversario) continue;
+            if(Math.abs(s[time][rodada]) == adversario) continue;
             else
             {
                 int aux = s[time][rodada];
@@ -422,103 +422,67 @@ public class Heuristics {
      * Seleciona aleatorimante uma rodada e dois times.
      * Troca os adversários de cada time naquela rodada escolhida
      * e altera a tabela para que não haja conflitos
-     * NOT WORKING PROPERLY
      * 
      * @param s matriz solução atual
      * @return  s com as alterações de troca parcial das
      * agendas de jogos dos times T e T'
      */
-    public static int[][] trocaParcialTime(int[][] s)
+    private static int[][] trocaParcialTime(int[][] s)
     {
-        int[] times = new int[2];
-        int rodada, aux, adv_T, adv_T_;
+        int time, time_;
+        int rodada, aux;
         Random rng = new Random();
 
-        times[0] = 1 + rng.nextInt(s.length - 1);
-        times[1] = times[0];
+        time = 1 + rng.nextInt(s.length - 1);
+        time_ = time;
 
-        while(times[0] == times[1] ) times[1] = 1 + rng.nextInt(s.length - 1);
+        while(time == time_) time_ = 1 + rng.nextInt(s.length - 1);
 
         rodada = rng.nextInt(s[0].length);
 
-        while( s[ times[0] ][rodada] == times[1] ) rodada = rng.nextInt(s[0].length);
-        
-        /* troca os adversários de T e T' na rodada R */
-        aux = s[ times[0] ][rodada];
-        s[ times[0] ][rodada] = s[ times[1] ][rodada];
-        s[ times[1] ][rodada] = aux;
-        
-        /* e arruma a rodada */
-        adv_T = Math.abs(s[ times[0] ][rodada]);
-        adv_T_ = Math.abs(s[ times[1] ][rodada]);
-
-        aux = s[ adv_T ][rodada];
-        s[ adv_T ][rodada] = s[ adv_T_ ][rodada];
-        s[ adv_T_ ][rodada] = aux;
-
-        /* rodadas em que T e T' jogavam contra seus atuaais adv. na rodada R */
-        int rodada_ = 0;
-        for(int i = 0; i < s[0].length; i++)
-        {
-            if( i != rodada && s[ times[0] ][i] == s[ times[0] ][rodada] )
-            {
-                /* troca os jogos de T e T' na rodada i */
-                aux = s[ times[0] ][i];
-                s[ times[0] ][i] = s[ times[1] ][i];
-                s[ times[1] ][i] = aux;
-
-                /* Arruma a rodada i */
-                adv_T = Math.abs(s[ times[0] ][i]);
-                adv_T_ = Math.abs(s[ times[1] ][i]);
-
-                aux = s[ adv_T ][i];
-                s[ adv_T ][i] = s[ adv_T_ ][i];
-                s[ adv_T_ ][i] = aux;
-            }
-            if( i != rodada && s[ times[1] ][i] == s[ times[1] ][rodada] )
-            {
-                /* troca os jogos de T e T' na rodada i */
-                aux = s[ times[0] ][i];
-                s[ times[0] ][i] = s[ times[1] ][i];
-                s[ times[1] ][i] = aux;
-
-                /* Arruma a rodada i */
-                adv_T = Math.abs(s[ times[0] ][i]);
-                adv_T_ = Math.abs(s[ times[1] ][i]);
-
-                aux = s[ adv_T ][i];
-                s[ adv_T ][i] = s[ adv_T_ ][i];
-                s[ adv_T_ ][i] = aux;
+        while( Math.abs(s[time][rodada]) == time_ ) rodada = rng.nextInt(s[0].length);
                 
-                rodada_ = i;
-            }
-        }
-
-        /**
-         * Aletrando a rodada em que o time T' joga contra seu atual adv.
-         * na rodada I
-         */
-        
-        for(int i = 0; i < s[0].length; i++)
+        while(rodada != -1)
         {
-            if( i != rodada_ && s[ times[1] ][i] == s[ times[1] ][rodada_] )
-            {
-                /* troca os jogos de T e T' na rodada i */
-                aux = s[ times[0] ][i];
-                s[ times[0] ][i] = s[ times[1] ][i];
-                s[ times[1] ][i] = aux;
+            /* Trocar com T' em R[T vs adv] */
+            aux = s[ time][rodada];
+            s[time][rodada] = s[time_][rodada];
+            s[time_][rodada] = aux;
 
-                /* Arruma a rodada i */
-                adv_T = Math.abs(s[ times[0] ][i]);
-                adv_T_ = Math.abs(s[ times[1] ][i]);
+            /* Arrumando o restante da rodada */
+            aux = Math.abs(s[time][rodada]);
+            s[aux][rodada] = (s[time][rodada] < 0)? time : -time;
 
-                aux = s[ adv_T ][i];
-                s[ adv_T ][i] = s[ adv_T_ ][i];
-                s[ adv_T_ ][i] = aux;
-            }
+            aux = Math.abs(s[time_][rodada]);
+            s[aux][rodada] = (s[time_][rodada] < 0)? time_ : -time_;
+
+            /* Procura rodada em que 'time' joga contra 'adv' */
+            rodada = procuraRodada(s, time, s[time][rodada], rodada);
         }
 
         return s;
+    }
+
+    /**
+     * Procura dentro dentro da solução s qual rodada
+     * o time t1 jogou contra t2, desde que não seja a
+     * rodada especificada.
+     * 
+     * @param s         matriz solução atual
+     * @param t1        time 1 para comparação
+     * @param t2        time 2 para comparação
+     * @param rodada    rodada a ser evitadda
+     * @return          rodada em que t1 joga contra t2
+     * ou -1 caso não haja nenhuma.
+     */
+    private static int procuraRodada(int[][] s, int t1, int t2, int rodada)
+    {
+        for(int rodadas = 0; rodadas < s[0].length; rodadas++)
+        {
+            if( s[t1][rodadas] == t2 && rodadas != rodada )
+                return rodadas;
+        }
+        return -1;
     }
 
     /**
