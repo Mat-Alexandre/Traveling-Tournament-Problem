@@ -51,7 +51,7 @@ public class Heuristics {
                 fo_viz = calculaFO(table, viz);
                 double deltaE = fo_viz - fo_s;
 
-                if(deltaE <= 0/* deltaE <= 0 */)
+                if(deltaE <= 0)
                 {
 
                     /* Aceita o vizinho como solução */
@@ -95,6 +95,7 @@ public class Heuristics {
 
     /**
      * Solução principal para a criação de uma solução via backtracking
+     * NOT WORKING PROPERLY
      * 
      * @param s         matriz solução atual
      * @param time      time a ser analisado
@@ -290,24 +291,48 @@ public class Heuristics {
     private static int[][] geraVizinho(int[][] table, int[][] s)
     {
         int [][] s_;
-        switch((new Random()).nextInt(3) + 1){
-        // switch(4){
-            case 1:
-                s_ = trocaCasa(s);
-                break;
-            case 2:
-                s_ = trocaRodada(s);
-                break;
-            case 3:
-                s_ = trocaTime(s);
-                break;
-            case 4:
-                s_ = trocaParcialTime(s);
-                break;
-            default:
-                s_ = s;
-                break;
-        }
+        boolean valido;
+
+        do
+        {
+            valido = true;
+            switch((new Random()).nextInt(3) + 1){
+                case 1:
+                    s_ = trocaCasa(s);
+                    break;
+                case 2:
+                    s_ = trocaRodada(s);
+                    break;
+                case 3:
+                    s_ = trocaTime(s);
+                    break;
+                case 4:
+                    s_ = trocaParcialTime(s);
+                    break;
+                default:
+                    s_ = s;
+                    break;
+            }
+
+            /* Verificando se o vizinho respeita a restrição de não repetição */
+            for(int time = 1; time < s.length; time++)
+            {
+                int adv = Math.abs(s[time][0]);
+                for(int rodada = 1; rodada < s[0].length; rodada++)
+                {
+                    if(Math.abs(s[time][rodada]) == adv)
+                    {
+                        valido = false;
+                        break;
+                    }else
+                    {
+                        adv = Math.abs(s[time][rodada]);
+                    }
+                }
+            }
+
+        }while(!valido);
+
         return s_;
     }
 

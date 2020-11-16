@@ -19,10 +19,23 @@ public class Main {
 
     
     public static void main(String[] args) {
-        int[][] table = OpenFile.getFile();
         int[][] s;
+        int[][] table;
+        String pathName;
+
+        if( args.length == 0 )
+        {
+            System.out.println("Sem arquivo especificado. Instância automática.");
+            pathName = null;
+        }else
+        {
+            pathName = args[0];
+            System.out.println("Caminho selecionado: " + pathName);
+        }
+        
         
         try{
+            table = OpenFile.getFile(pathName);
             
             s = Heuristics.SimulatedAnnealing(table, 0.01f, 0.97);
             

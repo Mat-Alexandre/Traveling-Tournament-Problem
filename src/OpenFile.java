@@ -6,12 +6,17 @@ import java.io.File;
 
 public class OpenFile{
 
-    public static int[][] getFile(){
+    public static int[][] getFile(String pathName){
         int[][] table = null;
         String currDir = System.getProperty("user.dir");
-        System.out.println();
+        
+        if(pathName == null)
+        {
+            pathName = "\\datasets\\dataset1";
+        }
+
         try{
-            Scanner sc = new Scanner(new File(currDir + "\\datasets\\dataset2"));
+            Scanner sc = new Scanner(new File(currDir + pathName));
             // Get the size of table in file
             int tableSize = sc.nextInt();
             // Skip current line
