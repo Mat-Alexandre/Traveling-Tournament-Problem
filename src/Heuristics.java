@@ -88,7 +88,7 @@ public class Heuristics {
         int [][] s = new int[table.length+1][2 *(table.length - 1)];
 
         /* Construção da solução inicial através de backtracking */
-        if(solucaoBacktracking(s, 1, 0) == false)
+        if(!solucaoBacktracking(s, 1, 0))
             return null;
         return s;
     }
@@ -104,6 +104,7 @@ public class Heuristics {
      */
     private static boolean solucaoBacktracking(int[][] s, int time, int rodada)
     {
+
         /**
          * Passo base do backtracking
          * O backtracking ocorrerá somente até a metade das rodadas.
@@ -111,59 +112,71 @@ public class Heuristics {
          */
         if(rodada == (s[0].length / 2))
         {
-            if(time == s.length-1)
+            if( time == s.length - 1)
+            {
                 return true;
-            else if(solucaoBacktracking(s, time + 1, 0))
+            }
+            if( solucaoBacktracking(s, time+1, 0))
+            {
                 return true;
-            else
+            }else
+            {
                 return false;
+            }
         }
-        
-        /* Para cada time T Verificar se o time T' pode ser colocado na rodada */
-        int fora_seq = 0;
-        for(int adversario = 1; adversario < s.length; adversario++)
+
+        /* Chamada recursiva pra caso T em R já possua jogo */
+        if( s[time][rodada] != SEM_TIME )
         {
-            /* Se respeita as restrições */
-            if(s[time][rodada] == SEM_TIME && rodada < (s[0].length / 2))
+            if( solucaoBacktracking(s, time, rodada + 1))
             {
-                if(respeitaRestricoes(s, time, adversario, rodada))
-                {
-                    /* Posição válida */
-                    /* Preenchendo as rodadas a partir da r[2(n - 1)] de forma espelhada */
-                    int m_round = (s[0].length / 2);
-                    int mult = 0;
-                    if( (new Random()).nextInt(1) == 1 && fora_seq < 3)
-                    {
-                        fora_seq++;
-                        mult = -1;
-                    }else
-                    {
-                        fora_seq = 0;
-                        mult = 1;
-                    }
-
-                    s[time][rodada] = mult * adversario;
-                    s[adversario][rodada] = -mult * time;
-                    s[time][rodada + m_round] = -mult * adversario;
-                    s[adversario][rodada + m_round] = mult * time;
-                    /* Backtracking para a próxima rodada */
-                    if(solucaoBacktracking(s, time, rodada + 1))
-                        return true;
-                        
-                    /* Se chegou neste trecho, desfazer as alterações */
-                    s[time][rodada] = SEM_TIME;
-                    s[adversario][rodada] = SEM_TIME;
-                    s[time][rodada + m_round] = SEM_TIME;
-                    s[adversario][rodada + m_round] = SEM_TIME;
-                }
-            }
-            else
+                return true;
+            }else
             {
-                rodada++;
+                return false;
             }
         }
 
-        return true;
+        /* Verificação de posições válidas para cada tupla (T, T', R) */
+        for(int adv = 1; adv < s.length; adv++)
+        {
+            if(respeitaRestricoes(s, time, adv, rodada))
+            {
+
+                /**
+                 * Preenchendo apenas a primeira metade das rodadas.
+                 * A segunda será espelhada com mando de campo invertido.
+                 */
+                int m_round = (s[0].length / 2);
+                int mult = 0;
+
+                if( (new Random()).nextInt(2) == 1)
+                {
+                    mult = -1; /* T joga fora de casa */
+                }else
+                {
+                    mult = 1;
+                }
+
+                s[time][rodada] = mult * adv;
+                s[adv][rodada] = -mult * time;
+                s[time][rodada + m_round] = -mult * adv;
+                s[adv][rodada + m_round] = mult * time;
+
+                /* Backtracking para a próxima rodada */
+                if(solucaoBacktracking(s, time, rodada+1))
+                    return true;
+                    
+                /* Caso o backtracking para T, R+1 seja falseo, desfazer as alterações */
+                s[time][rodada] = SEM_TIME;
+                s[adv][rodada] = SEM_TIME;
+                s[time][rodada + m_round] = SEM_TIME;
+                s[adv][rodada + m_round] = SEM_TIME;
+            }
+        }
+      
+
+        return false;
     }
 
     /**
@@ -192,7 +205,7 @@ public class Heuristics {
         /* Time já jogou contra adversário */
         for(int rodadas = 0; rodadas < s[0].length / 2; rodadas++)
         {
-            if(s[time][rodadas] == adversario)
+            if( Math.abs(s[time][rodadas]) == adversario)
                 return false;
         }
 

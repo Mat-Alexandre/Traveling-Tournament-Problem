@@ -1,5 +1,6 @@
 package src;
 
+
 public class Main {
     /**
      * Imprime a tabela de solução formatada
@@ -10,14 +11,13 @@ public class Main {
         for(int i = 1; i < table.length; i++){
             System.out.printf("%2d: ", i);
             for(int j = 0; j < table[0].length; j++){
-                System.out.printf("%2d ", table[i][j]);
+                System.out.printf("%3d ", table[i][j]);
             }
             System.out.println();
         }
         System.out.println();
     }
 
-    
     public static void main(String[] args) {
         int[][] s;
         int[][] table;
@@ -33,10 +33,8 @@ public class Main {
             System.out.println("Caminho selecionado: " + pathName);
         }
         
-        
         try{
             table = OpenFile.getFile(pathName);
-            
             s = Heuristics.SimulatedAnnealing(table, 0.01f, 0.97);
             
             System.out.println("Solução final:");
