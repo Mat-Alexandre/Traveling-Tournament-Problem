@@ -12,7 +12,7 @@ public class OpenFile{
         
         if(pathName == null)
         {
-            pathName = "\\datasets\\dataset10";
+            pathName = "\\datasets\\dataset6";
         }
 
         try{

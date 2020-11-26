@@ -35,12 +35,14 @@ public class Main {
         
         try{
             table = OpenFile.getFile(pathName);
-            s = Heuristics.SimulatedAnnealing(table, 0.01f, 0.97);
+            s = Heuristics.TTSA(table, 400, 0.9999f, 4000, 1.04f, 1.04f, 5000, 7100, 10);
             
             System.out.println("Solução final:");
             printTable(s);
 
-            System.out.println("FO(s): " + Heuristics.calculaFO(table, s));
+            int vio_s = Heuristics.violacoes(s);
+            System.out.println("Custo da solução: " + Heuristics.custo(table, s, vio_s, 4000f));
+            System.out.println("Número de violações: " + vio_s);
 
         }catch(NullPointerException npe){
             System.err.println("Não foi possível construir uma solução inicial.");

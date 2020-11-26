@@ -22,59 +22,107 @@ public class Heuristics {
      * Heurística para busca de ótimos locais de uma solução
      * através de um paralelo feito com fabricação de ligas metálicas
      * 
-     * @param table         tabela de distância
-     * @param temp_final    temperatura final desejada
-     * @param max_ite       número máximo de iterações
-     * @param alfa          parâmetro do SA
-     * @return
+     * @param table      tabela de distância
+     * @param T_ini      temperatura inicial
+     * @param beta       multiplicador da temperatura
+     * @param peso       punição de violação 
+     * @param delta      multiplicador do peso caso "s" seja inviável
+     * @param teta       divisor do peso caso "s" seja viável
+     * @param max_count  número máximo de iterações para explorar um espaço viável
+     * @param max_ite    número máximo de iterações para cada espaço de soluções
+     * @param max_reheat número máximo de reaquecimentos
+     * @return solução com o melhor custo, respeitando ou não as restrições
      * @throws NullPointerException
      */
-    public static int[][] SimulatedAnnealing(int[][] table, float temp_final, double alfa) throws NullPointerException{
-        /* Gerar a solução inicial e cálculo da temperatura */
+    public static int[][] TTSA(int[][] table, float T_ini, float beta, float peso, float delta, float teta, int max_count, int max_ite, int max_reheat) throws NullPointerException
+    {
         int[][] s = geraSolucaoInicial(table), viz = null;
-        int max_ite = (s.length - 1)*((s.length - 1)-1)/2;
-        float temperatura = calculaTemperaturaInicial(table, s, max_ite, alfa);
-        double fo_s, fo_viz;
-        
-        System.out.println("Solução inicial:");
-        Main.printTable(s);
-        
-        do{
-            int i = 0;
-            do{
-                
-                /* Gerar um vizinho aleatório */
-                viz = geraVizinho(table, copiaSolucao(s));
-                
-                /* deltaE = Diferença entre f(s') e f(s) */
-                fo_s = calculaFO(table, s);
-                fo_viz = calculaFO(table, viz);
-                double deltaE = fo_viz - fo_s;
+        double bestFeasible   = Double.MAX_VALUE, 
+               nbf            = Double.MAX_VALUE,
+               bestInfeasible = Double.MAX_VALUE, 
+               nbi            = Double.MAX_VALUE,
+               deltaC;
 
-                if(deltaE <= 0)
-                {
+        float temperatura = T_ini,
+        bestTemperature = temperatura;
 
-                    /* Aceita o vizinho como solução */
-                    s = viz;
-                }    
-                else
+        int reheat = 0, counter = 0, ite, vio_s, vio_viz;
+        boolean aceita;
+
+        while( reheat <= max_reheat )
+        {
+            ite = 0;
+
+            while( ite <= max_ite )
+            {
+
+                while( counter < max_count )
                 {
-                    calculaFO(table, s);
+                    viz = geraVizinho(table, copiaSolucao(s));
+                    vio_s = violacoes(s);
+                    vio_viz = violacoes(viz);
                     
-                    /* s' será aceito com uma probabilidade e^(-deltaE / T) */
-                    s = ((new Random()).nextDouble() <= Math.exp( (-deltaE)/temperatura ))? viz : s;
+                    double c_viz = custo(table, viz, vio_viz, peso),
+                    c_s = custo(table, s, vio_s, peso);
+    
+                    if(c_viz < c_s || vio_viz == 0 && c_viz < bestFeasible || vio_s > 0 && c_viz < bestInfeasible)
+                    {
+                        aceita = true;
+                    }else 
+                    {
+                        deltaC = c_viz - c_s;
+                        if( (new Random()).nextDouble() <= Math.exp( (-deltaC) / temperatura ))
+                        {
+                            aceita = true;
+                        }else
+                        {
+                            aceita = false;
+                        }
+                    }
+    
+                    if(aceita)
+                    {
+                        s = viz;
+                        vio_s = violacoes(s);
+                        c_s = custo(table, s, vio_s, peso);
+                        if(vio_s == 0)
+                        {
+                            nbf = Double.min(c_s, bestFeasible);
+                        }else
+                        {
+                            nbi = Double.min(c_s, bestInfeasible);
+                        }
+    
+                        if(nbf < bestFeasible || nbi < bestInfeasible)
+                        {
+                            reheat = 0; counter = 0; ite = 0;
+                            bestTemperature = temperatura;
+                            bestFeasible = nbf;
+                            bestInfeasible = nbi;
+    
+                            if(vio_s == 0)
+                            {
+                                peso = (float)(peso / teta);
+                            }else
+                            {
+                                peso = (float)(peso * delta);
+                            }
+                        }else
+                        {
+                            counter++;
+                        }
+                    }
                 }
-                i++;
-            }while(i < max_ite);
-            
-            /* Atualiza a temperatura */
-            temperatura *= alfa;
-        }while(temperatura < temp_final);
+                ite++;
+                temperatura = (float)(temperatura * beta);
+            }
+            reheat++;
+            temperatura = (float)(2*bestTemperature);
+        }
 
-        /* Retorna a melhor solução encontrada */
         return s;
     }
-
+    
     /**
      * Gera uma solução inicial via backtracking
      * 
@@ -95,7 +143,6 @@ public class Heuristics {
 
     /**
      * Solução principal para a criação de uma solução via backtracking
-     * NOT WORKING PROPERLY
      * 
      * @param s         matriz solução atual
      * @param time      time a ser analisado
@@ -213,19 +260,19 @@ public class Heuristics {
     }
 
     /**
-     * Cacula da o valor da Função Objetivo de uma determinada solução
+     * Cacula da o custo da Função Objetivo de uma determinada solução
+     * considerando a quantidade de violações cometidas e um peso de punição.
      * 
-     * Cálculo atual se basea apenas no custo de viajar de um local
-     * ao outro sem penalizar infrações.
-     * Link para calculo correto: https://mat.tepper.cmu.edu/TOURN/ttp_ipcp.pdf
-     * 
-     *  @param table    tabela de distância
-     *  @param s        matriz solução atual
-     *  @return o valor com precisão double da solução s
+     * @param table         tabela de distância
+     * @param s             matriz de solução atual
+     * @param num_violacoes número de violações cometidas pela solução s
+     * @param peso          peso multiplicador na função de punição
+     * @return o valor (double) da função objetivo da solução atual
      */
-    public static double calculaFO(int[][] table, int[][] s)
+    public static double custo(int[][] table, int[][] s, int num_violacoes, float peso)
     {
         double fo = 0;
+        // int peso = 1;
         
         for(int times = 1; times < s.length; times++)
         {
@@ -242,54 +289,83 @@ public class Heuristics {
             }
             fo += table[ Math.abs(s[times][s[0].length - 1]) - 1 ][times - 1];
         }
+
+        if(num_violacoes != 0)
+        {
+            fo = Math.sqrt( (fo * fo) + 
+            (peso * Math.pow((double)( 1 + Math.sqrt(num_violacoes) * Math.log( num_violacoes / 2)), (double)2) ));
+        }
         return fo;
     }
 
     /**
-     * Calcula a temperatura inicial para uma solução inicial s
-     * A temperatura inicial será feita através desse trecho de
-     * código e não via input do usuário
+     * Verifica se a solução respeita as restrições de
+     * não-repetição (T não pode jogar 2x em sequência contra T')
+     * e de máxima de jogos dentro/fora de casa.
      * 
-     * @param table     tabela de distância
-     * @param s         matriz solução atual
-     * @param max_ite   numero máximo permitido de iterações
-     * @param alfa      parâmetro do SA
-     * @return float correspondente a temperatura inicial para 
-     * início da heurística Simulated Annealing
+     * @param s matriz de solução atual
+     * @return  número total de violações
      */
-    private static float calculaTemperaturaInicial(int[][] table, int [][] s, int max_ite, double alfa)
+    public static int violacoes(int[][] s)
     {
-        int aceitos = 0, min_aceitos;
-        double fo_s, fo_viz, delta;
-        float temperatura = 2;
-        int[][] s_ = copiaSolucao(s);
+        int num_violacoes = 0;
 
-        min_aceitos = (int)(alfa * max_ite);
-
-        while( aceitos < min_aceitos )
+        for(int time = 1; time < s.length; time++)
         {
-            int ite = 0;
-            while( ite < max_ite)
+            int adversaio = Math.abs(s[time][0]), 
+            dentro = (s[time][0] > 0)? 1 : 0, 
+            fora = (s[time][0] < 0)? 1 : 0;
+            for(int rodada = 1; rodada < s[0].length; rodada++)
             {
-                ite++;
-                fo_s = calculaFO(table, s_);
-                fo_viz = calculaFO(table, geraVizinho(table, s_));
-                delta = fo_viz - fo_s;
-                if( delta < 0 )
-                    aceitos++;
-                else
+                if( Math.abs(s[time][rodada]) == adversaio )
                 {
-                    if( (new Random()).nextDouble() < Math.exp( (-delta)/temperatura ) )
-                        aceitos++;
+                    num_violacoes++;
                 }
-            }
-            if(aceitos < min_aceitos)
-            {
-                aceitos = 0;
-                temperatura *= 1.1f;
+                adversaio = Math.abs(s[time][rodada]);
+
+                if( dentro < 3 )
+                {
+                    if(s[time][rodada] > 0)
+                    {
+                        dentro++;
+                    }else
+                    {
+                        dentro = 0;
+                    }
+                }else
+                {
+                    if(s[time][rodada] > 0)
+                    {
+                        num_violacoes++;
+                    }else
+                    {
+                        dentro = 0;
+                    }
+                }
+
+                if( fora < 3 )
+                {
+                    if(s[time][rodada] < 0)
+                    {
+                        fora++;
+                    }else
+                    {
+                        fora = 0;
+                    }
+                }else
+                {
+                    if(s[time][rodada] < 0)
+                    {
+                        num_violacoes++;
+                    }else
+                    {
+                        fora = 0;
+                    }
+                }
+
             }
         }
-        return temperatura;
+        return num_violacoes;
     }
 
     /**
